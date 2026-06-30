@@ -6,13 +6,13 @@ Implementing key mathematical concepts from scratch to consolidate my understand
 
 Modern machine learning libraries hide much of the underlying mathematical operations behind high-level APIs. While this abstraction makes development efficient, it can make it difficult to understand what is happening internally. By rebuilding these core algorithms from scratch, this project aims to develop an intuitive understanding of the mathematical foundations and mechanisms behind machine learning algorithms.
 
-No high-level machine learning frameworks (such as PyTorch, TensorFlow, or scikit-learn) are used. The goal is to implement the fundamental algorithms manually using only NumPy.
+No high-level machine learning frameworks (such as PyTorch, TensorFlow, or scikit-learn) are used for model implementation. The goal is to implement the fundamental algorithms manually using only NumPy (TensorFlow was only used for loading the MNIST data).
 
 ## Projects
 * **Course 1: Linear Algebra** $\rightarrow$ **Principal Component Analysis (PCA)**
   * Implementing:
     * Helper Functions: Mean, Variance, Standard Deviation, Covariance, Dot Product, Euclidean Norm, Vector Normalization, Vector Projection
-    * Classical Gram-Schmidt orthogonalization
+    * Modified Gram-Schmidt orthogonalization
     * QR Decomposition
     * QR Algorithm for eigendecomposition
     * Principal Component Analysis

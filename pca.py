@@ -16,14 +16,6 @@ def std(X):
     std = np.sqrt(X_var)
     return std
 
-def covariance(X, Y):
-    X_mean = mean(X)
-    X_centered = X-X_mean
-    Y_mean = mean(Y)
-    Y_centered = Y - Y_mean
-    cov = np.sum(X_centered * Y_centered)/(X.shape[0]-1)
-    return cov
-
 def dot(u, v):
     assert u.shape == v.shape
     result = 0
@@ -40,28 +32,46 @@ def norm(v):
 def normalize(v):
     norm_v = norm(v)
     if norm_v < 1e-12:
-        raise ValueError("Zero Vector Detected")
+        return np.zeros_like(v)
     return v / norm_v
 
 def projection(vector, onto):
+    if dot(onto, onto) < 1e-12:
+        return np.zeros_like(vector)
     return dot(vector, onto) / dot(onto, onto) * onto
 
-def gram_schmidt(A):
+def classical_gram_schmidt(A):
     Q = [normalize(A[:, 0])]
     for i in range(1, A.shape[1]):
-        a = A[:, i]
-        u = a.astype(float).copy()
+        a = A[:, i].astype(float)
+        u = a.copy()
         for q in Q:
-            u -= projection(u, q)
+            u -= projection(a, q)
         q = normalize(u)
         Q.append(q)
     Q = np.column_stack(Q)
     R = Q.T @ A
     return Q, R
+def modified_gram_schmidt(A):
+    A_copy = A.astype(float).copy()
+    Q = np.zeros(A.shape)
+    R = np.zeros((A.shape[1], A.shape[1]))
 
-# Verifying for Gram-Schmidt
+    for i in range(0, A_copy.shape[1]):
+        R[i, i] = norm(A_copy[:, i])
+        if R[i, i] > 1e-12:
+            Q[:, i] = A_copy[:, i] / R[i, i]
+        else:
+            R[i, i] = 0.0
+            Q[:, i] = 0.0
+        for j in range(i+1, A_copy.shape[1]):
+            R[i, j] = np.dot(Q[:, i], A_copy[:, j])
+            A_copy[:, j] = A_copy[:, j] - (R[i, j] * Q[:, i])
+    return Q, R
+
+        # Verifying for Gram-Schmidt
 A = np.array([[1, 2], [3, 4]])
-Q, R = gram_schmidt(A)
+Q, R = modified_gram_schmidt(A)
 print(np.allclose(Q @ R, A))
 
 # Verifying Q orthogonality
@@ -75,7 +85,7 @@ def qr_algorithm(A, max_iter=1000, tol=1e-12):
     A = A.astype(float).copy()
     Q_total = np.eye(A.shape[0])
     for _ in range(max_iter):
-        Q, R = gram_schmidt(A)
+        Q, R = modified_gram_schmidt(A)
         A = R @ Q
         Q_total = Q_total @ Q
         if np.all(np.abs(np.tril(A, k=-1)) < tol):
@@ -89,15 +99,9 @@ class PCA:
     def __init__(self, n_components):
         self.n_components = n_components
     def standardize(self, X):
-        return (X - self.mean_)/self.std_
-    def covariance_matrix(self, X):
-        cov_matrix = np.zeros((X.shape[1], X.shape[1]))
-        for i in range(X.shape[1]):
-            x = X[:, i]
-            for j in range(X.shape[1]):
-                y = X[:, j]
-                cov = covariance(x, y)
-                cov_matrix[i][j] = cov
+        return (X - self.mean_)/np.where(self.std_ == 0, 1e-12, self.std_)
+    def covariance_matrix(self, X_centered):
+        cov_matrix = X_centered.T @ X_centered / (X_centered.shape[0]-1)
         return cov_matrix
     def eigen(self, A, max_iter=1000, tol=1e-12):
         return qr_algorithm(A, max_iter, tol)
@@ -122,4 +126,4 @@ class PCA:
         X_projected = self.project(X, top_eigenvectors)
         return X_projected
     def reconstruct(self, X_projected):
-        return (X_projected @ self.components_.T) * self.std_ + self.mean_
+        return (X_projected @ self.components_.T) * np.where(self.std_ == 0, 1e-12, self.std_) + self.mean_
