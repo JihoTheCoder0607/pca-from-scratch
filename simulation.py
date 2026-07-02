@@ -1,13 +1,14 @@
 import tensorflow as tf
 import numpy as np
-from pca import PCA
-import matplotlib.pyplot as plt
 
 (X_train, y_train), (X_test, y_test) = tf.keras.datasets.mnist.load_data()
 X_train = np.array(X_train).flatten().reshape(60000, 28 * 28) / 255.0
 y_train = np.array(y_train)
 X_test = np.array(X_test).flatten().reshape(10000, 28 * 28) / 255.0
 y_test = np.array(y_test)
+
+from pca import PCA
+import matplotlib.pyplot as plt
 
 pca = PCA(n_components=8)
 

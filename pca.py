@@ -69,16 +69,16 @@ def modified_gram_schmidt(A):
             A_copy[:, j] = A_copy[:, j] - (R[i, j] * Q[:, i])
     return Q, R
 
-        # Verifying for Gram-Schmidt
-A = np.array([[1, 2], [3, 4]])
-Q, R = modified_gram_schmidt(A)
-print(np.allclose(Q @ R, A))
-
-# Verifying Q orthogonality
-print(np.allclose(Q.T @ Q, np.eye(Q.shape[1])))
-
-# Verifying that R is triangular
-print(R)
+# # Verifying for Gram-Schmidt
+# A = np.array([[1, 2], [3, 4]])
+# Q, R = modified_gram_schmidt(A)
+# print(np.allclose(Q @ R, A))
+#
+# # Verifying Q orthogonality
+# print(np.allclose(Q.T @ Q, np.eye(Q.shape[1])))
+#
+# # Verifying that R is triangular
+# print(R)
 
 # QR Algorithm using Classical Gram-Schmidt
 def qr_algorithm(A, max_iter=1000, tol=1e-12):
