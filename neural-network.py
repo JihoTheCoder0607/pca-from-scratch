@@ -2,6 +2,21 @@ import numpy as np
 
 rng = np.random.default_rng(seed=42)
 
+def relu(x):
+    return max(0, x)
+
+def leaky_relu(x, a=0.01):
+    if x >= 0:
+        return x
+    else:
+        return a * x
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def tanh(x):
+    return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
+
 class Layer:
     def __init__(self, n_in, n_out, activation):
         self.n_in = n_in
