@@ -2,14 +2,12 @@ import numpy as np
 
 rng = np.random.default_rng(seed=42)
 
+# activation functions
 def relu(x):
-    return max(0, x)
+    return np.maximum(0, x)
 
 def leaky_relu(x, a=0.01):
-    if x >= 0:
-        return x
-    else:
-        return a * x
+    return np.where(x >= 0, x, a * x)
 
 def sigmoid(x):
     return 1 / (1 + np.exp(-x))
@@ -23,10 +21,10 @@ class Layer:
         self.n_out = n_out
         self.activation = activation
 
-        if activation == "relu":
+        if activation == relu:
             # He initialization
             self.weights = rng.standard_normal((n_in, n_out)) * np.sqrt(2.0 / n_in)
-        elif activation in ("sigmoid", "tanh"):
+        elif activation in (sigmoid, tanh):
             # Xavier initialization
             self.weights = rng.standard_normal((n_in, n_out)) * np.sqrt(1.0 / n_in)
         else:
@@ -40,3 +38,9 @@ class NN:
         self.layers = layers if layers is not None else []
     def add(self, layer):
         self.layers.append(layer)
+    def forward(self, X):
+        for layer in self.layers:
+            X_forward = X @ layer.weights + layer.biases
+            for row in range(X_forward.shape[0]):
+                X_forward[row] = layer.activation(X_forward[row])
+        return X_forward
