@@ -15,6 +15,21 @@ def sigmoid(x):
 def tanh(x):
     return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
 
+# loss functions
+def mse(y, y_pred):
+    return np.mean((y - y_pred) ** 2)
+
+def mae(y, y_pred):
+    return np.mean(np.abs(y - y_pred))
+
+def binary_cross_entropy(y, y_pred):
+    y_pred = np.clip(y_pred, 1e-15, 1 - 1e-15)
+    return -np.mean(y * np.log(y_pred) + (1 - y) * np.log(1 - y_pred))
+
+def categorical_cross_entropy(y, y_pred):
+    y_pred = np.clip(y_pred, 1e-15, 1.0)
+    return -np.mean(np.sum(y * np.log(y_pred), axis=-1))
+
 class Layer:
     def __init__(self, n_in, n_out, activation):
         self.n_in = n_in
