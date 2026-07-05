@@ -25,6 +25,27 @@ def softmax(x):
 def tanh(x):
     return (np.exp(x)-np.exp(-x))/(np.exp(x)+np.exp(-x))
 
+# derivatives of activation functions
+def relu_d(x):
+    return np.where(
+        x >= 0,
+        1,
+        0
+    )
+
+def leaky_relu_d(x, a=0.01):
+    return np.where(
+        x >= 0,
+        1,
+        a
+    )
+
+def sigmoid_d(x):
+    return sigmoid(x) * (1-sigmoid(x))
+
+def tanh_d(x):
+    return 1-(tanh(x)**2)
+
 # loss functions
 def mse(y, y_pred):
     return np.mean((y - y_pred) ** 2)
