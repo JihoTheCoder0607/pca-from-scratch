@@ -40,9 +40,6 @@ def leaky_relu_d(x, a=0.01):
         a
     )
 
-def sigmoid_d(x):
-    return sigmoid(x) * (1-sigmoid(x))
-
 def tanh_d(x):
     return 1-(tanh(x)**2)
 
@@ -60,6 +57,19 @@ def binary_cross_entropy(y, y_probs):
 def categorical_cross_entropy(y, y_probs):
     y_probs = np.clip(y_probs, 1e-15, 1.0)
     return -np.mean(np.sum(y * np.log(y_probs), axis=-1))
+
+# derivatives of loss functions
+def mse_d(y, y_pred):
+    return (y_pred-y) / y.shape[0]
+
+def mae_d(y, y_pred):
+    return np.sign(y_pred-y) / y.shape[0]
+
+def sigmoid_BCE_d(y, y_pred):
+    return (y_pred-y) / y.shape[0]
+
+def softmax_CCE_d(y, y_probs):
+    return (y_probs-y) / y.shape[0]
 
 # metrics
 def rmse(y, y_pred):
