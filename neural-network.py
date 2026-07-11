@@ -65,8 +65,8 @@ def mse_d(y, y_pred):
 def mae_d(y, y_pred):
     return np.sign(y_pred-y) / y.shape[0]
 
-def sigmoid_BCE_d(y, y_pred):
-    return (y_pred-y) / y.shape[0]
+def sigmoid_BCE_d(y, y_probs):
+    return (y_probs-y) / y.shape[0]
 
 def softmax_CCE_d(y, y_probs):
     return (y_probs-y) / y.shape[0]
@@ -97,21 +97,34 @@ def accuracy(y, y_pred):
     return mean(y == y_pred)
 
 class Layer:
-    def __init__(self, n_in, n_out, activation):
+    def __init__(self, n_in, n_out, activation, activation_d):
         self.n_in = n_in
         self.n_out = n_out
         self.activation = activation
+        self.activation_d = activation_d
 
-        if activation == relu:
+        if self.activation == relu:
             # He initialization
             self.weights = rng.standard_normal((n_in, n_out)) * np.sqrt(2.0 / n_in)
-        elif activation in (sigmoid, tanh):
+        elif self.activation in (sigmoid, tanh):
             # Xavier initialization
             self.weights = rng.standard_normal((n_in, n_out)) * np.sqrt(1.0 / n_in)
         else:
             self.weights = rng.standard_normal((n_in, n_out)) * 0.01
 
         self.biases = np.zeros((1, n_out))
+    def forward(self, X):
+        self.input = X
+        self.Z = X @ self.weights + self.biases
+        self.A = self.activation(self.Z)
+        return self.A
+    def backward(self, y, loss_d, delta):
+        if self.activation == relu or self.activation == leaky_relu or self.activation == tanh:
+            self.gradient = (delta * loss_d(y, self.A) * self.activation_d(self.Z)) @ self.weights.T
+        elif self.activation == sigmoid or self.activation == softmax:
+            self.gradient = delta * self.activation_d(y, self.A) @ self.weights.T
+
+        return self.gradient
 
 class NN:
     def __init__(self, input_shape, layers=None):
@@ -119,12 +132,27 @@ class NN:
         self.layers = layers if layers is not None else []
     def add(self, layer):
         self.layers.append(layer)
-    def compile(self, loss, metrics):
+    def compile(self, loss, loss_d, metrics):
         self.loss = loss
+        self.loss_d = loss_d
         self.metrics = metrics
-    def forward(self, X):
-        for layer in self.layers:
-            X_forward = X @ layer.weights + layer.biases
-            for row in range(X_forward.shape[0]):
-                X_forward[row] = layer.activation(X_forward[row])
-        return X_forward
+    def fit(self, X, y, max_iter, learning_rate):
+        for i in range(max_iter):
+            delta = 1
+            for layer in self.layers:
+                X = layer.forward(X)
+            for layer in self.layers[::-1]:
+                delta = layer.backward(y, self.loss_d, delta)
+                layer.weights -= learning_rate * delta
+
+model = NN((2, ))
+model.add(Layer(2, 3, relu, relu_d))
+model.add(Layer(3, 2, leaky_relu, leaky_relu_d))
+model.add(Layer(2, 1, sigmoid, sigmoid_BCE_d))
+
+model.compile(binary_cross_entropy, sigmoid_BCE_d, accuracy)
+
+X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
+y = np.array([0, 1, 1, 1])
+
+model.fit(X, y, max_iter=2, learning_rate=0.001)
