@@ -43,6 +43,15 @@ def leaky_relu_d(x, a=0.01):
 def tanh_d(x):
     return 1-(tanh(x)**2)
 
+def sigmoid_d(x):
+    sig = sigmoid(x)
+    return sig * (1.0 - sig)
+
+def softmax_d(x):
+    def softmax_jacobian(s):
+        s = s.reshape(-1, 1)
+        return np.diagflat(s) - np.dot(s, s.T)
+
 # loss functions
 def mse(y, y_pred):
     return np.mean((y - y_pred) ** 2)
@@ -118,13 +127,12 @@ class Layer:
         self.Z = X @ self.weights + self.biases
         self.A = self.activation(self.Z)
         return self.A
-    def backward(self, y, loss_d, delta):
-        if self.activation == relu or self.activation == leaky_relu or self.activation == tanh:
-            self.gradient = (delta * loss_d(y, self.A) * self.activation_d(self.Z)) @ self.weights.T
-        elif self.activation == sigmoid or self.activation == softmax:
-            self.gradient = delta * self.activation_d(y, self.A) @ self.weights.T
+    def backward(self, delta):
+        delta = delta * self.activation_d(self.Z)
+        self.dLdW = self.input.T @ delta
+        self.dLdb = np.sum(delta, axis=0, keepdims=True)
 
-        return self.gradient
+        return delta @ self.weights.T
 
 class NN:
     def __init__(self, input_shape, layers=None):
@@ -138,21 +146,37 @@ class NN:
         self.metrics = metrics
     def fit(self, X, y, max_iter, learning_rate):
         for i in range(max_iter):
-            delta = 1
+            activation = X
             for layer in self.layers:
-                X = layer.forward(X)
-            for layer in self.layers[::-1]:
-                delta = layer.backward(y, self.loss_d, delta)
-                layer.weights -= learning_rate * delta
+                activation = layer.forward(activation)
+
+            # for output layer
+            if self.loss == mse or self.loss == mae:
+                delta = self.loss_d(y, self.layers[-1].A) * self.layers[-1].activation_d(self.layers[-1].Z)
+            else:
+                delta = self.loss_d(y, self.layers[-1].Z)
+
+            output_layer = self.layers[-1]
+            output_layer.dLdW = output_layer.input.T @ delta
+            output_layer.dLdb = np.sum(delta, axis=0, keepdims=True)
+
+            output_layer.weights -= learning_rate * output_layer.dLdW
+            output_layer.biases -= learning_rate * output_layer.dLdb
+
+            # for hidden layers
+            for layer in self.layers[::-1][1:]:
+                delta = layer.backward(delta)
+                layer.weights -= learning_rate * layer.dLdW
+                layer.biases -= learning_rate * layer.dLdb
 
 model = NN((2, ))
 model.add(Layer(2, 3, relu, relu_d))
 model.add(Layer(3, 2, leaky_relu, leaky_relu_d))
-model.add(Layer(2, 1, sigmoid, sigmoid_BCE_d))
+model.add(Layer(2, 1, sigmoid, sigmoid_d))
 
 model.compile(binary_cross_entropy, sigmoid_BCE_d, accuracy)
 
 X = np.array([[0, 0], [0, 1], [1, 0], [1, 1]])
-y = np.array([0, 1, 1, 1])
+y = np.array([[0], [1], [1], [1]])
 
 model.fit(X, y, max_iter=2, learning_rate=0.001)
