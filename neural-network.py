@@ -48,9 +48,8 @@ def sigmoid_d(x):
     return sig * (1.0 - sig)
 
 def softmax_d(x):
-    def softmax_jacobian(s):
-        s = s.reshape(-1, 1)
-        return np.diagflat(s) - np.dot(s, s.T)
+    x = x.reshape(-1, 1)
+    return np.diagflat(x) - np.dot(x, x.T)
 
 # loss functions
 def mse(y, y_pred):
@@ -145,29 +144,31 @@ class NN:
         self.loss_d = loss_d
         self.metrics = metrics
     def fit(self, X, y, max_iter, learning_rate):
-        for i in range(max_iter):
-            activation = X
+        for _ in range(max_iter):
+            # forward pass
+            temp = X
             for layer in self.layers:
-                activation = layer.forward(activation)
+                temp = layer.forward(temp)
 
-            # for output layer
-            if self.loss == mse or self.loss == mae:
-                delta = self.loss_d(y, self.layers[-1].A) * self.layers[-1].activation_d(self.layers[-1].Z)
+            # backward pass
+            # 1. output layer
+            delta = self.layers[-1].A - y
+            if self.loss == sigmoid or self.loss == softmax:
+                self.layers[-1].dLdW = self.layers[-1].input.T @ delta
+                self.layers[-1].dLdb = np.sum(delta, axis=0, keepdims=True)
+
+                delta = delta @ self.layers[-1].weights.T
             else:
-                delta = self.loss_d(y, self.layers[-1].Z)
+                delta = self.layers[-1].backward(delta)
 
-            output_layer = self.layers[-1]
-            output_layer.dLdW = output_layer.input.T @ delta
-            output_layer.dLdb = np.sum(delta, axis=0, keepdims=True)
-
-            output_layer.weights -= learning_rate * output_layer.dLdW
-            output_layer.biases -= learning_rate * output_layer.dLdb
-
-            # for hidden layers
+            # hidden layers
             for layer in self.layers[::-1][1:]:
                 delta = layer.backward(delta)
-                layer.weights -= learning_rate * layer.dLdW
-                layer.biases -= learning_rate * layer.dLdb
+
+            for layer in self.layers:
+                layer.weights = layer.weights - learning_rate * layer.dLdW
+                layer.biases = layer.biases - learning_rate * layer.dLdb
+
 
 model = NN((2, ))
 model.add(Layer(2, 3, relu, relu_d))
